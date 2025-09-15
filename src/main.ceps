@@ -3,56 +3,70 @@ A Planckservice - smallest possible microservice.
 Implemented using state machines with actions written in Oblectamenta Assembler.
 */
 
-kind Event;
-kind Guard;
-kind Systemstate;
+kind Event;  //You can now write Event MyEvent, and MyEvent is known to be a special 'thing' associated with Event
+kind Guard;  // Guards for transitions, again you can now write Guard myguard;
 
-kind OblectamentaMsgDefDirective;
-kind OblectamentaMsgReadDirective;
-kind OblectamentaMessageModifier;
 
-OblectamentaMessageTag i32;
-OblectamentaMessageTag i64;
-OblectamentaMessageTag f64;
-OblectamentaMessageTag sz;
-OblectamentaMessageModifier all;
+kind OblectamentaMsgDefDirective;  // Is used in connection with the serialization of messages
+kind OblectamentaMsgReadDirective; // Is used in connection with the deserialization of messages
+kind OblectamentaMessageModifier;  // Indicates flags modifying the standad behaviour of serialization/deserialization of messages
 
-OblectamentaMsgDefDirective write;
-OblectamentaMsgReadDirective read;
+OblectamentaMessageTag i32;  // Used when writing/reading message fields which contain 32 bit integers
+OblectamentaMessageTag i64;  // Used when writing/reading message fields which contain 64 bit integers
+OblectamentaMessageTag f64;  // Used when writing/reading message fields which contain 64 bit floats (IEE 754)
+OblectamentaMessageTag sz;   // ... zero terminated strings
+OblectamentaMessageModifier all; // This one let you iterate over all fields of a given name
+
+OblectamentaMsgDefDirective write;   // Indicates the serialization of a message
+OblectamentaMsgReadDirective read;   // ... deserialization ...
    
-OblectamentaDataLabel msg_buffer, accounts, count, client_count;
+OblectamentaDataLabel msg_buffer, accounts, count, client_count; // Data labels mark the location of data in the global data segment
 
-Event evAddAccount, evReplyOK, evReplyNOKTableFull, evPrintTable;
+Event evAddAccount, evReplyOK, evReplyNOKTableFull, evPrintTable; //A couple of events used in transitions of state machines 
 
-val max_accounts = 32;
+val max_accounts = 32; // val introduces a value which is computed beforehand, i.e. during compilation
 val entry_len = 8;
 val offs_a = 0;
 val offs_b = 4;
 val max_client_requests = 12;
 
 
-oblectamenta{
+oblectamenta{ 
  global{
    data{
-    count; 0;
-    accounts; for (e: 1 .. max_accounts){0;0;}
-    msg_buffer; for(e : 1 .. 32) {e;}
-    client_count;0;
+    // here are the global data definitions
+    count; 0; // count is the name of the location which contains a 32 bit integer with value 0 (all bits are 0)
+    accounts; for (e: 1 .. max_accounts){0;0;} // reserves max_accounts of two consecutive 32 bit integers initialized with 0
+                                               // for (...) {...} is evaluated during AST expansion, i.e. is a program transformation (meta programming)
+
+    msg_buffer; for(e : 1 .. 32) {e;} // Reserve 32 consecutively stored 32 bit integers initialized to the values 1,2,3,...,32
+    client_count;0; // 32 bit integer initialized with 0
    };
  };
 };
 
+
+// Our service is modeled as a state machine
 sm{
-    Service;
-    states{Initial;Ready;ProcessRequest;};
-    Actions{
-        doAddAccount{
-         oblectamenta{text{asm{
-           OblectamentaCodeLabel lbl_table_full;
-           lea(count);
-           ldsi32;
-           ldi32(max_accounts);
-           blteq(lbl_table_full);           
+    Service; // Name of the state machine
+    states{Initial;Ready;ProcessRequest;}; // Atomic states 
+    Actions{ // Actions, actions are triggered in transitions
+        doAddAccount{ 
+         oblectamenta{text{asm{ // yeah, a lot of typing to indicate an assemble routine 
+           OblectamentaCodeLabel lbl_table_full; // We will do a goto and need a label (this is the declaration)
+           lea(count); // The Oblectamenta VM implemnts a hybrid: there are registers and a compute stack.
+                       // lea(count) puts the address of the object labeled count on the top of the compute stack, hence
+                       // CS = |&count| (we use the C address of operator &) 
+           ldsi32;     // Dereference the pointer on the top of CS and push the i32 value on CS
+                       // addr =TOP(CS); value = *(int32_t*)addr; CS = |value of count|
+           ldi32(max_accounts); // max_accounts is a constant value, ldi32 pushes the max_accounts on CS
+                       CS = |value of count|max_accounts|
+
+           blteq(lbl_table_full); // a = pop 32 bit value from CS
+                                  // b = pop 32 bit value from CS
+                                  // (CS empty now)
+                                  // if b <= a jump to lbl_table_full
+                                   
            lea(count);ldsi32;ldi32(entry_len);muli32;sti32(R0); // R0 = count * entry_len;
            lea(count);ldsi32;ldi32(1);addi32;lea(count);stsi32; // count = count + 1
            lea(accounts);ldi64(R0);addi64;sti64(R1);
