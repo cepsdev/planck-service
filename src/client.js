@@ -49,7 +49,8 @@ function main(){
         var account = { Account: {a:1, b:2}};
         var account_serialized = JSON.stringify(account);
         console.log(account_serialized);
-        ws_ceps_api.send("EVENT\nevAddAccount\n"+account_serialized+"\n");
+        //ws_ceps_api.send("EVENT\nevAddAccount\n"+account_serialized+"\n");
+        ws_ceps_api.send("EVENT\nevAddAccount");
     });
     ws_ceps_api.on("close", () => {
         ws_ceps_api = null;

@@ -22,6 +22,7 @@ OblectamentaMsgReadDirective read;             // ... deserialization ...
    
 OblectamentaDataLabel msg_buffer, accounts, 
                       count, client_count;     // Data labels mark the location of data in the global data segment
+kind OblectamentaGlobalEventPayloadWrite; OblectamentaGlobalEventPayloadWrite write_payload;
 
 Event evAddAccount, evReplyOK, 
       evReplyNOKTableFull, evPrintTable;       //A couple of events used in transitions of state machines 
@@ -40,7 +41,7 @@ oblectamenta{
     accounts; for (e: 1 .. max_accounts){0;0;} // reserves max_accounts of two consecutive 32 bit integers initialized with 0
                                                // for (...) {...} is evaluated during AST expansion, i.e. is a program transformation (meta programming)
 
-    msg_buffer; for(e : 1 .. 32) {e;}          // Reserve 32 consecutively stored 32 bit integers initialized to the values 1,2,3,...,32
+    msg_buffer;write_payload; for(e : 1 .. 32) {0;}          // Reserve 32 consecutively stored 32 bit integers initialized to the value 0
     client_count;0;                            // 32 bit integer initialized with 0
    };
  };
@@ -100,7 +101,8 @@ sm{                                            // Our service is modeled as a st
         };
     };
     t{Initial;Ready;};                         // state machine transitions immediately to the state Ready
-    t{Ready;Ready;evAddAccount;doAddAccount;}; // We loop on Ready, each time we receive an event evAddAccount we add an account (assuming the message's payload is in msg_buffer)
+    t{Ready;ProcessRequest;evAddAccount;doAddAccount;}; // We loop on Ready, each time we receive an event evAddAccount we add an account (assuming the message's payload is in msg_buffer)
+    t{ProcessRequest;Ready;};
 };
 
 sm{
@@ -162,5 +164,5 @@ sm{
 };
 
 Simulation{
-    Start{Service;Client;TablePrinter;};
+    Start{Service;/*Client;*/TablePrinter;};
 };
