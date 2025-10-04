@@ -46,11 +46,21 @@ function main(){
     });
     ws_ceps_api.on("open", () => {
         log("maim()",`Successfully connected to ws://localhost:${ws_api_port_of_service}.`);
-        var account = { Account: {a:1, b:2}};
+        var account = { Account: {a:10, b:2}};
         var account_serialized = JSON.stringify(account);
         console.log(account_serialized);
-        //ws_ceps_api.send("EVENT\nevAddAccount\n"+account_serialized+"\n");
-        ws_ceps_api.send("EVENT\nevAddAccount");
+        ws_ceps_api.send("EVENT\nevAddAccount\n"+account_serialized+"\n");
+        account = { Account: {a:11, b:3}};
+        account_serialized = JSON.stringify(account);
+        ws_ceps_api.send("EVENT\nevAddAccount\n"+account_serialized+"\n");
+        account = { Account: {a:12, b:4}};
+        account_serialized = JSON.stringify(account);
+        ws_ceps_api.send("EVENT\nevAddAccount\n"+account_serialized+"\n");
+        account = { Account: {a:13, b:5}};
+        account_serialized = JSON.stringify(account);
+        ws_ceps_api.send("EVENT\nevAddAccount\n"+account_serialized+"\n");
+
+        //ws_ceps_api.send("EVENT\nevAddAccount");
     });
     ws_ceps_api.on("close", () => {
         ws_ceps_api = null;

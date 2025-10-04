@@ -21,16 +21,20 @@ OblectamentaMsgDefDirective write;             // Indicates the serialization of
 OblectamentaMsgReadDirective read;             // ... deserialization ...
    
 OblectamentaDataLabel msg_buffer, accounts, 
-                      count, client_count;     // Data labels mark the location of data in the global data segment
-kind OblectamentaGlobalEventPayloadWrite; OblectamentaGlobalEventPayloadWrite write_payload;
+                      count, client_count, event_header, msg1, msg2, msg3, msg4, msg5, msg6;     // Data labels mark the location of data in the global data segment
+
+kind OblectamentaGlobalEventPayload; 
+OblectamentaGlobalEventPayload global_payload_buffer;
+kind OblectamentaGlobalEventMetainformation;
+OblectamentaGlobalEventMetainformation global_event_header_buffer;
 
 Event evAddAccount, evReplyOK, 
       evReplyNOKTableFull, evPrintTable;       //A couple of events used in transitions of state machines 
 
 val max_accounts = 32;                         // val introduces a value which is computed beforehand, i.e. during compilation
-val entry_len = 8;
+val entry_len = 16;
 val offs_a = 0;
-val offs_b = 4;
+val offs_b = 8;
 val max_client_requests = 12;
 
 
@@ -41,8 +45,15 @@ oblectamenta{
     accounts; for (e: 1 .. max_accounts){0;0;} // reserves max_accounts of two consecutive 32 bit integers initialized with 0
                                                // for (...) {...} is evaluated during AST expansion, i.e. is a program transformation (meta programming)
 
-    msg_buffer;write_payload; for(e : 1 .. 32) {0;}          // Reserve 32 consecutively stored 32 bit integers initialized to the value 0
+    msg_buffer;global_payload_buffer; for(e : 1 .. 32) {0;}          // Reserve 32 consecutively stored 32 bit integers initialized to the value 0
     client_count;0;                            // 32 bit integer initialized with 0
+    event_header;global_event_header_buffer;for(e : 1 .. 32) {0;}
+    msg1;"\ndoAddAccount\n";0;
+    msg2;"\ndoAddAccount-a\n";0;
+    msg3;"\ndoAddAccount-b\n";0;
+    msg4;"\ndoAddAccount-c\n";0;
+    msg5;"\ndoAddAccount-d\n";0;
+    msg6;"\ndoAddAccount-e\n";0;
    };
  };
 };
@@ -56,6 +67,10 @@ sm{                                            // Our service is modeled as a st
         doAddAccount{ 
          oblectamenta{text{asm{                   // yeah, a lot of typing to indicate an assemble routine 
            OblectamentaCodeLabel lbl_table_full;  // We will do a goto and need a label (this is the declaration)
+           
+           
+           //dbg_printsz(msg1);
+
            lea(count);                            // The Oblectamenta VM implements a hybrid (virtual-)machine architecture, it has plenty of registers and also a compute stack.
                                                   // lea(count) puts the address of the object labeled count on the top of the compute stack, hence
                                                   // CS = |&count| (we use the C address of operator &) 
@@ -72,28 +87,41 @@ sm{                                            // Our service is modeled as a st
            lea(count);ldsi32;ldi32(entry_len);muli32;sti32(R0); // R0 = count * entry_len;
            lea(count);ldsi32;ldi32(1);addi32;lea(count);stsi32; // count = count + 1
            lea(accounts);ldi64(R0);addi64;sti64(R1);            // R1 = &accounts + R0 = &accounts[count-1]
+           assert_empty_cs;
+           
            msg{                                 // msg{...} is NOT a machine language instruction of any kind, msg is a directive which gets
                                                 // translated into an Oblectamenta fragment which allows for a compact notation of message serialization/deserialization
                 read;                           // Indicates that code for deserialization has to be generated
                 msg_buffer;
-                Account{                        // The first element of the message is an Account, this innocuous looking struct is translated in a lengthy code fragment
+                {
+                  //dbg_printsz(msg2);
+                  Account{                        // The first element of the message is an Account, this innocuous looking struct is translated in a lengthy code fragment
                                                 // which handles the correct deserialization of a node with the name Account and a variable number of sub nodes.
-                    a{                          // Account.a
-                        i32;                    // Read a 32 bit signed integer, we denote its value with a
+                    //dbg_printsz(msg3);
+                    {//dbg_printsz(msg4);
+                     a{                          // Account.a
+                        f64;                    // Read a 32 bit signed integer, we denote its value with a
+                        //dbg_printsz(msg5);
+                        //dbg_print_topi64;
                         ldi64(offs_a);          // |
                         ldi64(R1);              // |
                         addi64;                 // |
-                        stsi32;                 // ===> Accounts[count-1].a = a
-                    };
-                    b{                         // Account.b
-                        i32;                   // Read a 32 bit signed integer, we denote its value with b
+                        stsi64;                 // ===> Accounts[count-1].a = a
+                     };
+                     b{                         // Account.b
+                        f64;                   // Read a 32 bit signed integer, we denote its value with b
+                        //dbg_printsz(msg6);
+                        //dbg_print_topi64;
                         ldi64(offs_b);         // |
                         ldi64(R1);             // |
                         addi64;                // |
-                        stsi32;                // ===> Accounts[count-1].b = b
-                    };
-                };
+                        stsi64;                // ===> Accounts[count-1].b = b
+                     };
+                    }
+                 }; //Account
+                }
             };
+            //dbg_print_data(0);
             assert_empty_cs;                   // CS should be empty, if not this will trigger an exception which prints a stack trace and terminates the process 
             evReplyOK;halt;                    // Reply with the event evReplyOK and stop
             lbl_table_full;evReplyNOKTableFull; // We end up here if and only if the table is full, we reply by sending the event evReplyNOKTableFull
@@ -105,64 +133,6 @@ sm{                                            // Our service is modeled as a st
     t{ProcessRequest;Ready;};
 };
 
-sm{
-    Client;
-    Actions{
-      doRequest{
-        oblectamenta{text{asm{
-           msg{
-            write;
-            msg_buffer;
-            Account{
-             a{ldi32(10);lea(client_count);ldsi32;addi32;i32;};
-             b{ldi32(100);lea(client_count);ldsi32;addi32;i32;};
-            };
-           };
-           lea(client_count);ldsi32;ldi32(1);addi32;lea(client_count);stsi32; // client_count = client_count + 1
-         evAddAccount;                            
-        };};};
-      };
-    };
-    states{Initial;Request;WaitForReply;Final;};
-    t{Initial;Request;};
-    t{Request;WaitForReply;doRequest;};
-    t{WaitForReply;Request;evReplyOK;};
-    t{WaitForReply;Final;evReplyNOKTableFull;};
-};
-
-sm{
-    TablePrinter;
-    states{Initial;Print;};
-    Actions{
-     doPrintTable{oblectamenta{text{asm{
-        OblectamentaCodeLabel lbl_done, lbl_loop;
-        lea(accounts); sti64(R0);      // R0 = address of accounts
-        lea(count);ldsi32;sti32(R1);   // R1 = number of stored entries
-        ldi32(entry_len); sti32(R2);   // R2 = size of enry in bytes
-        ldi32(0); sti32(R3);           // R3 = 0
-        lbl_loop;
-        ldi32(R3);ldi32(R1);           // CS = ...|R3(i32)|R1(i32)|
-        blteq(lbl_done);               // if R1 <= R2 (<=> #entries <= counter) then gotot lbl_done
-        ldi64(R0);ldi64(R3);ldi64(R2);muli64;addi64; // CS = ...|Address of R3th entry|
-        duptopi64;
-        ldsi32;
-        dbg_print_topi32;
-        discardtopi32;
-        ldi64(offs_b);
-        addi64;
-        ldsi32;
-        dbg_print_topi32;
-        discardtopi32;
-        ldi32(R3);ldi32(1);addi32;sti32(R3); // R3 = R3 + 1
-        buc(lbl_loop);
-        lbl_done;
-        assert_empty_cs;        
-     };};};};
-    };
-    t{Initial;Print;evReplyOK;doPrintTable;};
-    t{Print;Initial;};
-};
-
 Simulation{
-    Start{Service;/*Client;*/TablePrinter;};
+    Start{Service;};
 };
