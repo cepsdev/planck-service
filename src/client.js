@@ -9,8 +9,6 @@ const http = require("http");
 const chalk = require('chalk');
 const dns = require("dns");
 const fs_mv = require("mv");
-const username = require("username");
-const host_name = os.hostname();
 const ws_api_port_of_service = "3001";
 var ws_ceps_api = null;
 
@@ -50,17 +48,20 @@ function main(){
         var account_serialized = JSON.stringify(account);
         console.log(account_serialized);
         ws_ceps_api.send("EVENT\nevAddAccount\n"+account_serialized+"\n");
+        return;
         account = { Account: {a:11, b:3}};
         account_serialized = JSON.stringify(account);
         ws_ceps_api.send("EVENT\nevAddAccount\n"+account_serialized+"\n");
+        console.log(account_serialized);
         account = { Account: {a:12, b:4}};
         account_serialized = JSON.stringify(account);
         ws_ceps_api.send("EVENT\nevAddAccount\n"+account_serialized+"\n");
+        console.log(account_serialized);
         account = { Account: {a:13, b:5}};
         account_serialized = JSON.stringify(account);
         ws_ceps_api.send("EVENT\nevAddAccount\n"+account_serialized+"\n");
-
-        //ws_ceps_api.send("EVENT\nevAddAccount");
+        console.log(account_serialized);
+        ws_ceps_api.send("EVENT\nevAddAccount");
     });
     ws_ceps_api.on("close", () => {
         ws_ceps_api = null;
