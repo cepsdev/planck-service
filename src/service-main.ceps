@@ -13,7 +13,7 @@ kind OblectamentaMessageModifier;              // Indicates flags modifying the 
 
 OblectamentaMessageTag i32;                    // Used when writing/reading message fields which contain 32 bit integers
 OblectamentaMessageTag i64;                    // Used when writing/reading message fields which contain 64 bit integers
-OblectamentaMessageTag f64;                    // Used when writing/reading message fields which contain 64 bit floats (IEE 754)
+OblectamentaMessageTag f64;                    // Used when writing/reading message fields which contain 64 bit floats (IEEE 754)
 OblectamentaMessageTag sz;                     // ... zero terminated strings
 OblectamentaMessageModifier all;               // This one let you iterate over all fields of a given name
 
