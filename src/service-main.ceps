@@ -21,8 +21,7 @@ OblectamentaMsgDefDirective write;             // Indicates the serialization of
 OblectamentaMsgReadDirective read;             // ... deserialization ...
    
 OblectamentaDataLabel msg_buffer,msg_buffer_reply, accounts, 
-                      pi,nl,count, client_count, event_header, 
-                      msg11,msg1, msg2, msg3, msg4, msg5, msg6, msg7, msg8, msg9, msg10;     // Data labels mark the location of data in the global data segment
+                      pi,nl,count, client_count, event_header;     // Data labels mark the location of data in the global data segment
 
 kind OblectamentaGlobalEventPayload; 
 OblectamentaGlobalEventPayload global_payload_buffer;
@@ -42,10 +41,8 @@ val max_client_requests = 12;
 oblectamenta{ 
  global{
    data{                                       // here are the global data definitions
-    "!!!!!!!";
     msg_buffer_reply; 0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;
     0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;
-    "!!!!!!!";
 
     count; 0;                                  // count is the name of the location which contains a 32 bit integer with value 0 (all bits are 0)
     accounts; for (e: 1 .. max_accounts){0;0;} // reserves max_accounts of two consecutive 32 bit integers initialized with 0
@@ -54,18 +51,6 @@ oblectamenta{
     msg_buffer;global_payload_buffer; for(e : 1 .. 64) {0;}          // Reserve 32 consecutively stored 32 bit integers initialized to the value 0
     client_count;0;                            // 32 bit integer initialized with 0
     event_header;global_event_header_buffer;for(e : 1 .. 32) {0;}
-    msg1;"\ndoAddAccount\n";0;
-    msg2;"\ndoAddAccount-a\n";0;
-    msg3;"\ndoAddAccount-b\n";0;
-    msg4;"\ndoAddAccount-c\n";0;
-    msg5;"Account.a = ";0;
-    msg6;"Account.b = ";0;
-    msg7;"Weborigin socket is ";0;
-    msg8;"\n====>A\n";0;
-    msg9;"\n====>B\n";0;
-    msg10;"\n====>C\n";0;
-    msg11;"\n====>D\n";0;
-    nl;"\n";0;
     pi;3.14159265;
    };
  };
@@ -81,9 +66,6 @@ sm{                                            // Our service is modeled as a st
          oblectamenta{text{asm{                   // yeah, a lot of typing to indicate an assemble routine 
            OblectamentaCodeLabel lbl_table_full;  // We will do a goto and need a label (this is the declaration)
            
-           
-           //dbg_printsz(msg1);
-
            lea(count);                            // The Oblectamenta VM implements a hybrid (virtual-)machine architecture, it has plenty of registers and also a compute stack.
                                                   // lea(count) puts the address of the object labeled count on the top of the compute stack, hence
                                                   // CS = |&count| (we use the C address of operator &) 
@@ -106,10 +88,11 @@ sm{                                            // Our service is modeled as a st
                                                 // translated into an Oblectamenta fragment which allows for a compact notation of message serialization/deserialization
                 read;                           // Indicates that code for deserialization has to be generated
                 msg_buffer;
-                {
+                { // A scope introduces a node with no name, 
+                  // which is represented as an object in JSON
                   Account{                        // The first element of the message is an Account, this innocuous looking struct is translated in a lengthy code fragment
                                                 // which handles the correct deserialization of a node with the name Account and a variable number of sub nodes.
-                    {
+                    {   //Scope => object in JSON
                      a{                          // Account.a
                         f64;                    // Read a 32 bit signed integer, we denote its value with a
                         ldi64(offs_a);          // |
@@ -127,21 +110,20 @@ sm{                                            // Our service is modeled as a st
                     }
                  }; //Account
                 }
-            };           
-           msg{
+            };
+            msg{ // Each message comes with a orignin field, we read it to build our destination
               read;
               msg_buffer;
-              origin_websocket_sock{
+              origin_websocket_sock{ // Will only be matched if it exists
                 i32;
                 sti32(R2);           
               };  
             };
-            assert_empty_cs;
-            evReplyOK(
+            evReplyOK(  // we trigger an event with a payload
             msg{
                 write;
                 msg_buffer_reply;
-                destination_websocket_sock{
+                destination_websocket_sock{ //assuming that the client lives behind a websocket connection
                   ldi32(R2);
                   i32;
                 };
