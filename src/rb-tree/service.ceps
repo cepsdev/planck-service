@@ -40,13 +40,19 @@ val rb_tree_i32_i32_node_value_ofs = 0;
 val rb_tree_i32_i32_node_parent_ofs = 4;
 val rb_tree_i32_i32_node_left_ofs = 8;
 val rb_tree_i32_i32_node_right_ofs = 12;
+val rb_tree_i32_i32_node_size = 16;
+val rb_tree_i32_i32_addr_size = 4; 
+val rb_tree_i32_i32_nil_addr = rb_tree_i32_i32_addr_size; 
 
 oblectamenta{ 
  global{
    data{                                       // here are the global data definitions
     rb_tree_i32_i32; // key,parent,left,right last three fields are relative offsets
-    16; // size of node
-    NODE{0;0;0;0;};NODE{33;0;32;48;};NODE{13;16;0;0;};NODE{44;16;0;0;};
+    rb_tree_i32_i32_node_size; // ROOT 
+    NODE{0;0;0;0;};
+    NODE{33;rb_tree_i32_i32_nil_addr;32;48;};
+    NODE{13;16;rb_tree_i32_i32_nil_addr;rb_tree_i32_i32_nil_addr;};
+    NODE{44;16;rb_tree_i32_i32_nil_addr;rb_tree_i32_i32_nil_addr;};
 
     msg_buffer_reply; 0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;
     0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;
@@ -63,32 +69,28 @@ sm{
  Actions{                         
   doFindEntry{
    oblectamenta{text{asm{
-    OblectamentaCodeLabel loop;
-    assert_empty_cs;
+    OblectamentaCodeLabel loop, not_found;
     msg{read;msg_buffer;{Key{i32;sti32(R0);};}};
     //INVARIANT: R0 contains key value
-    lea(rb_tree_i32_i32); // |addr of rb_tree_i32_i32| R0=key
-    ldsi32;               // |size of node| R0=key
-    sti32(R1);            // || R0=key, R1=sizeof(node)
-    lea(rb_tree_i32_i32); // |addr of rb_tree_i32_i32| R0=key, R1=sizeof(node)
-    sti64(R2);            // || R0=key, R1=sizeof(node), R2=&rb_tree_i32_i32
-    ldi32(R1);ldi32(4);addi32;
-    sti32(R3);            // || R0=key, R1=sizeof(node), R2=&rb_tree_i32_i32, R3=current_node
-    ldi32(rb_tree_i32_i32_node_value_ofs);
-    sti32(R4);            // || R0=key, R1=sizeof(node), R2=&rb_tree_i32_i32, R3=current_node, R4=rb_tree_i32_i32_node_value_ofs
+    // R1 contains base address of rb-tree
+    lea(rb_tree_i32_i32);sti64(R1);
+    // R2 contains offset of current node
+    lea(rb_tree_i32_i32);ldsi32;sti32(R2);
+    
 loop;
-    ldi64(R2);
-    ldi64(R3);
-    addi64;
-    ldi64(R4);
-    addi64;
-    ldsi32;             // |key(current_node)| R0=key, R1=sizeof(node), R2=&rb_tree_i32_i32, R3=current_node, R4=rb_tree_i32_i32_node_value_ofs
-    dbg_print_cs_and_regs(0);halt;
-    dbg_print_cs_and_regs(0);
+    // R2 != NIL
+    ldi32(R2);
+    ldi32(rb_tree_i32_i32_nil_addr);
+    beq(not_found);
     halt;
 
-    assert_empty_cs;
-    halt;      
+dbg_print_cs_and_regs(0);halt;dbg_print_data(0);halt;
+
+    dbg_print_cs_and_regs(0);
+    dbg_print_cs_and_regs(0);
+    halt;
+not_found; dbg_print_cs_and_regs(0);halt;
+
    };};};
   };
  };
@@ -103,11 +105,8 @@ sm{
  Actions{
   doRequestKey{
    oblectamenta{text{asm{
-    assert_empty_cs;
-    evRequestEntry(msg{write;msg_buffer;{Key{ldi32(77);i32;};}});
-    assert_empty_cs;
+    evRequestEntry(msg{write;msg_buffer;{Key{ldi32(33);i32;};}});
    };};};
-   halt;
   };
  };
  t{Initial;RequestKey;doRequestKey;};
