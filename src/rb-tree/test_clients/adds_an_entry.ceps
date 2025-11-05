@@ -1,0 +1,13 @@
+sm{
+ Client;
+ states{Initial;RequestKey;};
+ Actions{
+  doRequestKey{
+   oblectamenta{text{asm{
+    send_msg{evRequestEntry;{Key{ldi32(33);i32;};}};
+    //evRequestEntry(msg{write;msg_buffer;{Key{ldi32(33);i32;};}});
+   };};};
+  };
+ };
+ t{Initial;RequestKey;doRequestKey;};
+};
