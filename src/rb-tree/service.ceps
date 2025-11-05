@@ -10,6 +10,8 @@ OblectamentaGlobalEventPayload global_payload_buffer;
 kind OblectamentaGlobalEventMetainformation;
 OblectamentaGlobalEventMetainformation global_event_header_buffer;
 
+
+
 Event evRequestEntry; 
 
 
@@ -23,11 +25,10 @@ val rb_tree_i32_i32_nil_addr = rb_tree_i32_i32_addr_size;
 
 oblectamenta{ 
  global{
-   data{                                       // here are the global data definitions
-    rb_tree_i32_i32; // key,parent,left,right last three fields are relative offsets
-    rb_tree_i32_i32_node_size; // ROOT 
-    NODE{0;0;0;0;};
-    NODE{33;rb_tree_i32_i32_nil_addr;32;48;};
+   data{
+    0; "make sure that no data resides at offset 0";
+    rb_tree_i32_i32; "Here begins the rb tree with i32 keys and i32 values";
+    NODE{34 # Value;NIL # Parent;32 # Left ;48 # Right;};
     NODE{13;16;rb_tree_i32_i32_nil_addr;rb_tree_i32_i32_nil_addr;};
     NODE{44;16;rb_tree_i32_i32_nil_addr;rb_tree_i32_i32_nil_addr;};
 
@@ -47,7 +48,19 @@ sm{
   doFindEntry{
    oblectamenta{text{asm{
     OblectamentaCodeLabel loop, not_found;
-    msg{read;msg_buffer;{Key{i32;sti32(R0);};}};
+    
+    val key = R0; "Value of key is the symbol R0 now.";
+
+    // We expect the message to be of the form { key : INT32}
+    msg_match{
+        {
+            Key{
+                i32 # "A int 32 value";
+                sti32(key) # "store int 32 value in key";
+            };
+        }
+    };
+    
     dbg_print_cs_and_regs(0);
     //INVARIANT: R0 contains key value
     // R1 contains base address of rb-tree

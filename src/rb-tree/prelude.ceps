@@ -1,34 +1,45 @@
-kind Event;                                    //You can now write Event MyEvent, and MyEvent is known to be a special 'thing' associated with Event
-kind Guard;                                    // Guards for transitions, again you can now write Guard myguard;
+kind Event;                                    "We can now write Event MyEvent, and MyEvent is known to be a special 'thing' associated with Event";
+kind Guard;                                    "Guards for transitions, again you can now write Guard myguard";
 
 
-kind OblectamentaMsgDefDirective;              // Is used in connection with the serialization of messages
-kind OblectamentaMsgReadDirective;             // Is used in connection with the deserialization of messages
-kind OblectamentaMessageModifier;              // Indicates flags modifying the standad behaviour of serialization/deserialization of messages
+kind OblectamentaMsgDefDirective;              "Is used in connection with the serialization of messages";
+kind OblectamentaMsgReadDirective;             "Is used in connection with the deserialization of messages";
+kind OblectamentaMessageModifier;              "Indicates flags modifying the standad behaviour of serialization/deserialization of messages";
 
-OblectamentaMessageTag i32;                    // Used when writing/reading message fields which contain 32 bit integers
-OblectamentaMessageTag i64;                    // Used when writing/reading message fields which contain 64 bit integers
-OblectamentaMessageTag f64;                    // Used when writing/reading message fields which contain 64 bit floats (IEEE 754)
-OblectamentaMessageTag sz;                     // ... zero terminated strings
-OblectamentaMessageModifier all;               // This one let you iterate over all fields of a given name
+OblectamentaMessageTag i32;                    "Used when writing/reading message fields which contain 32 bit integers";
+OblectamentaMessageTag i64;                    "Used when writing/reading message fields which contain 64 bit integers";
+OblectamentaMessageTag f64;                    "Used when writing/reading message fields which contain 64 bit floats (IEEE 754)";
+OblectamentaMessageTag sz;                     "... zero terminated strings";
+OblectamentaMessageModifier all;               "This one lets you iterate over all fields of a given name";
 
-OblectamentaMsgDefDirective write;             // Indicates the serialization of a message
-OblectamentaMsgReadDirective read;             // ... deserialization ...
+OblectamentaMsgDefDirective write;             "Indicates the serialization of a message";
+OblectamentaMsgReadDirective read;             "... deserialization ...";
 
 
-OblectamentaDataLabel rb_tree_i32_i32; // The rb tree structure
-OblectamentaDataLabel msg_buffer; // The global message buffer, serialized messages are processed here.
+OblectamentaDataLabel rb_tree_i32_i32; "The rb tree structure";
+OblectamentaDataLabel msg_buffer; "The global message buffer, serialized messages are processed here.";
 
 val NIL = 0;
 
+"# is the comment operator, i.e. expression_1 # expression_2 means expression_1 if evaluated expression_2 is ignored.";
 macro NODE{                           
- hd(arglist);                         // N.value
- hd(tail(arglist));                   // N.parent
- hd(tail(tail(arglist)));             // N.left
- hd(tail(tail(tail(arglist))));       // N.right
-}; 
+ hd(arglist)                    # N.value;
+ hd(tail(arglist))              # N.parent;
+ hd(tail(tail(arglist)))        # N.left;
+ hd(tail(tail(tail(arglist))))  # N.right;
+};
 
-assert_equality{
+macro ROOT{
+    NODE{hd(arglist);NIL;hd(tail(arglist));hd(tail(tail(arglist)));};
+};
+
+macro LEAF{
+    NODE{hd(arglist);hd(tail(arglist));NIL;NIL;};
+};
+
+
+definition{
+    "'definition' has no predefined meaning, we use it here to introduce constructs we make use of in the program.";
     lhs{ NODE{Value;Parent;Left;Right;}; };
     rhs {Value;Parent;Left;Right;};
 };
@@ -36,3 +47,28 @@ assert_equality{
 macro send_msg{
     hd(arglist)(msg{write;msg_buffer;hd(tail(arglist));});
 };
+
+macro msg_match{
+    msg{read;msg_buffer;hd(arglist);};
+};
+
+val node_size = 0;
+"Statically compute the size of a NODE, not entirely kosher.";
+for (e : as_nodeset(NODE{0;0;0;0;})){
+ let node_size = node_size + 4;
+}
+
+example{
+    a_binary_tree{
+     val root_addr = 4;
+     ROOT{12;node_size;node_size*2;};
+     LEAF{10;root_addr;};
+     LEAF{13;root_addr;};
+     "Above sequence defines the binary tree below    
+          12    
+        /    \\
+       10    13
+     ";      
+    };
+};
+
