@@ -12,16 +12,6 @@ OblectamentaGlobalEventMetainformation global_event_header_buffer;
 
 Event evRequestEntry; 
 
-macro NODE{
- hd(arglist); // value
- hd(tail(arglist)); // parent
- hd(tail(tail(arglist))); // left
- hd(tail(tail(tail(arglist)))); // right
-}; 
-
-macro send_msg{
-    hd(arglist)(msg{write;msg_buffer;hd(tail(arglist));});
-};
 
 val rb_tree_i32_i32_node_value_ofs = 0;
 val rb_tree_i32_i32_node_parent_ofs = 4;

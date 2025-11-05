@@ -14,3 +14,25 @@ OblectamentaMessageModifier all;               // This one let you iterate over 
 
 OblectamentaMsgDefDirective write;             // Indicates the serialization of a message
 OblectamentaMsgReadDirective read;             // ... deserialization ...
+
+
+OblectamentaDataLabel rb_tree_i32_i32; // The rb tree structure
+OblectamentaDataLabel msg_buffer; // The global message buffer, serialized messages are processed here.
+
+val NIL = 0;
+
+macro NODE{                           
+ hd(arglist);                         // N.value
+ hd(tail(arglist));                   // N.parent
+ hd(tail(tail(arglist)));             // N.left
+ hd(tail(tail(tail(arglist))));       // N.right
+}; 
+
+assert_equality{
+    lhs{ NODE{Value;Parent;Left;Right;}; };
+    rhs {Value;Parent;Left;Right;};
+};
+
+macro send_msg{
+    hd(arglist)(msg{write;msg_buffer;hd(tail(arglist));});
+};
