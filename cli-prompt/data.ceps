@@ -1,0 +1,19 @@
+example{
+"This example shows how to allocate space for a message buffer.";
+"In addtion to a message buffer we reserve space for a table called voting_table.";
+"The maximal number of voting table entries is"; 
+val max_voting_table_size = 10;
+"The runtime variable with label voting_table_size contains the currently held number of entries.";
+val msg_buffer_size_in_dwords = 32;
+
+OblectamentaDataLabel voting_table;
+OblectamentaDataLabel voting_table_size;
+
+data{                                       // here are the global data definitions
+    msg_buffer_reply;
+    comment{"Reserve space for the message buffer.";};
+    for(i : 1 .. msg_buffer_size_in_dwords) {0;}
+    voting_table_size; 0;
+    voting_table;
+};
+};
