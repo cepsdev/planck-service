@@ -58,16 +58,9 @@ macro msg_match{
     msg{read;msg_buffer;hd(arglist);};
 };
 
-
-val table_item_counter = 0;
-macro TABLE_START{
-let table_item_counter = 0;
-};
-
 macro TABLE_ENTRY{
  hd(arglist) # Id;
  hd(tail(arglist)) # Votes;
- let table_item_counter = table_item_counter + 1; 
 };
 
 

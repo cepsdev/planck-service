@@ -54,8 +54,8 @@ macro msg_match{
 
 val node_size = 0;
 "Statically compute the size of a NODE, not entirely kosher.";
-for (e : as_nodeset(NODE{0;0;0;0;})){
- let node_size = node_size + 4;
+for (e : as_nodeset(NODE{0;0;0;0;})){ 
+    let node_size = node_size + 4;
 }
 
 example{
@@ -70,5 +70,12 @@ example{
        10    13
      ";      
     };
+};
+
+macro N{
+ if (empty(arglist)) {A;} else {B;}    
+};
+example{
+    N{node{12;node{10;};node{13;};};};
 };
 

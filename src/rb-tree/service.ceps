@@ -24,11 +24,18 @@ val rb_tree_i32_i32_addr_size = 4;
 val rb_tree_i32_i32_nil_addr = rb_tree_i32_i32_addr_size; 
 
 oblectamenta{ 
+ "Oblectementa is the name of the virtual machine architecture. 
+  The Oblectamenta virtual processor is programmed using the Oblectamenta assembly language and executed by the Oblectamenta VM which
+  performs just in time compilation on supported architectures.
+ "; 
  global{
+   "Introduces a globally accessible section, e.g. data or code.";
    data{
-    0; "make sure that no data resides at offset 0";
-    rb_tree_i32_i32; "Here begins the rb tree with i32 keys and i32 values";
-    NODE{34 # Value;NIL # Parent;32 # Left ;48 # Right;};
+    comment{"Defines a section of data.";};
+    comment{"comment on comment: comment has no special meaning, it prevents the assembler from inserting strings into the data section.";};
+    0; comment{"make sure that no data resides at offset 0";};
+    rb_tree_i32_i32; comment{"Here begins the rb tree with i32 keys and i32 values";};
+    ROOT{34 # Value; # Left ;48 # Right;};
     NODE{13;16;rb_tree_i32_i32_nil_addr;rb_tree_i32_i32_nil_addr;};
     NODE{44;16;rb_tree_i32_i32_nil_addr;rb_tree_i32_i32_nil_addr;};
 
@@ -49,9 +56,9 @@ sm{
    oblectamenta{text{asm{
     OblectamentaCodeLabel loop, not_found;
     
-    val key = R0; "Value of key is the symbol R0 now.";
+    val key = R0; "Value of key is the symbol R0 now. val v = e; binds the value e to v and is evaluated during AST generation.";
 
-    // We expect the message to be of the form { key : INT32}
+    "We expect the message to be of the form { key : INT32}";
     msg_match{
         {
             Key{
@@ -60,9 +67,11 @@ sm{
             };
         }
     };
+    INVARIANT{ "Register denoted by 'key' contains the key of the searched item."; };
     
+    dbg_print_data(0);
     dbg_print_cs_and_regs(0);
-    //INVARIANT: R0 contains key value
+    
     // R1 contains base address of rb-tree
     lea(rb_tree_i32_i32);sti64(R1);
     // R2 contains offset of current node

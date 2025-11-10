@@ -13,7 +13,11 @@ data{                                       // here are the global data definiti
     msg_buffer_reply;
     comment{"Reserve space for the message buffer.";};
     for(i : 1 .. msg_buffer_size_in_dwords) {0;}
+    comment{"Reserve space for the table' size and initialize with 0 (0 entries in table)";};
     voting_table_size; 0;
-    voting_table;
-};
+    voting_table;comment{"Reserve space for the table itself.";};
+    for(i : 1 .. voting_table_size ){ 
+        TABLE_ENTRY{0;0;};
+    }
+ };
 };

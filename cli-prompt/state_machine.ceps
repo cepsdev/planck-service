@@ -1,0 +1,19 @@
+example{
+    "This section explains state machines";
+    "A simple state machine called S1 with two transitions triggered by an event Ev";
+    Event Ev;
+    sm{
+        S1;
+        states{Initial;A;B;};
+        t{Initial;A;Ev;};
+        t{A;B;Ev;};
+    };
+    "The behaviour of this state machine can be tested by running a sequence of events in a Simulation directive:";
+    Simulation{
+      Ev;
+      Ev; 
+      "State machine should be in state B.";
+      };
+    "To run this example put the content of this section into a file FILE.ceps and run ceps FILE.ceps in the shell. The output on standard output
+    is a sequence of the states visited, called a trace. The trace can be used to check correctness.";
+};
