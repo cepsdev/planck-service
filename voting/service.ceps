@@ -23,7 +23,7 @@ oblectamenta{global{data{  // here are the global data definitions
     voting_table;comment{"Reserve space for the table itself.";};
     TABLE_ENTRY{3;4;};  
     for(i : 2 .. max_voting_table_size ){ 
-        TABLE_ENTRY{i;0;};
+        TABLE_ENTRY{0;0;};
     }
  };};};
 
@@ -127,11 +127,10 @@ sm{
                  };
                  }
                 };
-                dbg_print_cs_and_regs(0);
-                ldi32(0); // Put 0 as 32 bit signed integer on the top of the computation stack
-                sti32(current_idx); //current_idx = 0
+                ldi32(0);                                   // Put 0 as 32 bit signed integer on the top of the computation stack
+                sti32(current_idx);                         //current_idx = 0
         
-                lea(voting_table_size); // Put the address of voting_table_size onto the computestack 
+                lea(voting_table_size);            // Put the address of voting_table_size onto the computestack 
                 ldsi32;                 // Pop the address on top of the compute stack and push the value references onto the compute stack
                 sti32(table_size);      // Put the constant table_size onto the compute stack
                 // Search a free field.
@@ -141,38 +140,61 @@ sm{
                 blteq(add_entry_tbl_full); // Jump to add_entry_tbl_full if max_voting_table_size <= table_size 
 
         
-               add_entry_loop_search_entry;
+               add_entry_loop_search_entry; // This is a label, labels serve as destination for jumps
 
                 ldi32(current_idx);                         // Put the i32 value current_idx which denotes a register onto the compute stack
                 ldi32(table_size);                          // Put the i32 value table_size which denotes a register onto the compute stack
-                blteq(add_entry_loop_search_entry_failed);  //If table_idx >= table_size jump to loop_search_entry_failed; 
-                lea(voting_table);   // put the address of voting_table onto the compute stack
-                ldi32(current_idx);   // put the value of the register denoted by current_idx onto the compute stack
-                ldi32(table_entry_size); // put the i32 constant value of table_entry_size onto the compute stack
-                muli32;  // Multiply the top i32 elements on the compute stack and replace them with the result, which is current_idx*table_entry_size
-                ui32toui64; // convert the top i32 value into a unsigned integer of 64 width capable of holding an address
-                addi64; // add the top i64 values on the compute stack and replace them with the result
-                sti64(addr_current_element); //store the top value of the computation stack in the register denoted by addr_current_element
-                ldi64(addr_current_element); //put the i64 value which is in the register denoted by addr_current_element onto the computation stack
-                ldi64(table_item_key_ofs); //put the constant value table_item_key_ofs as i64 value onto the compute stack
-                addi64; // add the top i64 elements of the compute stack and replace them with the result
-                ldsi32; // The address at the top of the compute stack points to the current element's key, derefernce the address and replace it with the i32 value.
-                ldi32(key); // Put the i32 value stored in the register denoted by key onto the compute stack
-                beq(add_entry_loop_search_entry_success); // if the top two i32 values on the compute stack are equal jump to add_entry_loop_search_entry_success
-                ldi32(current_idx); //put the vaue in register denoted by current_idx onto the compute stack
-                ldi32(1); // Put the i32 representation of the value 1 onto the compute stack
-                addi32; // Add the top two values on the compute stack and replace them with the result
-                sti32(current_idx); // Put the top i32 value on the compute stack into the register denoted by current_idx
-                buc(add_entry_loop_search_entry); // jump to add_entry_loop_search_entry, buc means branch unconditionally 
-                buc(add_entry_loop_search_entry_success);
-               add_entry_loop_search_entry_failed;
-                evAddEntryProcessedSuccessfully;
-                halt;
+                blteq(add_entry_loop_search_entry_failed);  // If table_idx >= table_size jump to loop_search_entry_failed; 
+                lea(voting_table);                          // Put the address of voting_table onto the compute stack
+                ldi32(current_idx);                         // Put the value of the register denoted by current_idx onto the compute stack
+                ldi32(table_entry_size);                    // Put the i32 constant value of table_entry_size onto the compute stack
+                muli32;                                     // Multiply the top i32 elements on the compute stack and replace them with the result, which is current_idx*table_entry_size
+                ui32toui64;                                 // Convert the top i32 value into a unsigned integer of 64 width capable of holding an address
+                addi64;                                     // Add the top i64 values on the compute stack and replace them with the result
+                sti64(addr_current_element);                // Store the top value of the computation stack in the register denoted by addr_current_element
+                ldi64(addr_current_element);                // Put the i64 value which is in the register denoted by addr_current_element onto the computation stack
+                ldi64(table_item_key_ofs);                  // Put the constant value table_item_key_ofs as i64 value onto the compute stack
+                addi64;                                     // add the top i64 elements of the compute stack and replace them with the result
+                ldsi32;                                     // The address at the top of the compute stack points to the current element's key, derefernce the address and replace it with the i32 value.
+                ldi32(key);                                 // Put the i32 value stored in the register denoted by key onto the compute stack
+                beq(add_entry_loop_search_entry_success);   // If the top two i32 values on the compute stack are equal jump to add_entry_loop_search_entry_success
+                ldi32(current_idx);                         // Put the vaue in register denoted by current_idx onto the compute stack
+                ldi32(1);                                   // Put the i32 representation of the value 1 onto the compute stack
+                addi32;                                     // Add the top two values on the compute stack and replace them with the result
+                sti32(current_idx);                         // Put the top i32 value on the compute stack into the register denoted by current_idx
+                buc(add_entry_loop_search_entry);           // Jump to add_entry_loop_search_entry, buc means 'branch unconditionally' 
+                buc(add_entry_loop_search_entry_success);   // Jump to add_entry_loop_search_entry_success, buc means 'branch unconditionally'
+               add_entry_loop_search_entry_failed;          // This is a label, labels serve as destination for jumps
+                                                            // Invariant: current_idx points to the next free entry
+                lea(voting_table);                          // Puts address of voting_table on top of the computaton stack
+                ldi32(current_idx);                         // Puts the content of the register with alias current_idx on top of the computation stack
+                ldi32(table_entry_size);                    // Puts the constant table_entry_size on top of the computation stack
+                muli32;                                     // Multiplies the top two i32 values on the computation stack and replaces them with the i32 result, i.e. the computation stack shrinks by 4 bytes.
+                ui32toui64;                                 // Convert top i32 element of compute stack into an i64 value
+                addi64;                                     // Add the top two i64 elements and replace them with the result
+                sti64(addr_current_element);                // Move the i64 on top of the computation stack into the register aliased by addr_current_element
+                ldi32(key);                                 // Copy the value in register aliased with key on top of the computation stack
+                ldi64(addr_current_element);                // Copy the value of the register which holds addr_current_element on top of the computation stack
+                ldi64(table_item_key_ofs);                  // Copy the i64 representation of the constant value table_item_key_ofs onto the compute stack
+                addi64;                                     // Add the top two elements of the compute stack and replace them with the result.
+                stsi32;                                     // sets the key field of the entry's table entry
+                ldi32(0);                                   // put the 32 bit signed integer representation of the value 0 onto the compute stack
+                ldi64(addr_current_element);                // Copy the value of the register aliased with addr_current_element onto the compute stack
+                ldi64(table_item_vote_ofs);                 // Copy the constant value table_item_vote_ofs as a 64 bit wide integer onto the top of the compute stack
+                addi64;                                     // Add the top two i64 values on the compute stack and replace them with the result
+                stsi32;                                     // sets the key field of the entry's table entry
+                ldi32(current_idx);
+                ldi32(1);
+                addi32;
+                lea(voting_table_size);
+                stsi32;                                   // Update variable referenced by voting_table_size by incrementing it 
+                evAddEntryProcessedSuccessfully;            // Fire event evAddEntryProcessedSuccesfully
+                halt;                                       // Stop execution
                add_entry_tbl_full;
-                evAddEntryTableFull;
-                halt;
+                evAddEntryTableFull;                        // Table is full, we signal this by firing the event evAddEntryTableFull
+                halt;                                       // Stop execution
                add_entry_loop_search_entry_success;
-                evAddEntryEntryExists;
+                evAddEntryEntryExists;                      // Search found an entry with the requested key, fire an according event
                 halt;
             };};};
         };
