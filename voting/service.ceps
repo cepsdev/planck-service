@@ -59,12 +59,12 @@ sm{
         // Find entry.
         
     loop_search_entry;
-        ldi32(current_idx);
-        ldi32(table_size);
+        ldi32(current_idx);              // Copy the value in the register denoted by the alias current_idx onto the compute stack, the compute stack grows by 4 bytes and contains current_idx as its top element
+        ldi32(table_size);               // Copy the value of the register aliased by table_size on top of the compute stack
         blteq(loop_search_entry_failed); //If table_idx >= table_size jump to loop_search_entry_failed; 
-        lea(voting_table);
-        ldi32(current_idx);
-        ldi32(table_entry_size);
+        lea(voting_table);               // Put the address of the label voting_table onto the compute stack
+        ldi32(current_idx);              // Copy the value of the register denoted by current_idx on top of the compute stack 
+        ldi32(table_entry_size);         // Copy the value of the registe denoted by table_entry_size on top of the compute stack
         muli32;
         ui32toui64;
         addi64;
