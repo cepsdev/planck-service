@@ -1,27 +1,25 @@
-kind Event;
-Event evDoVote;
-Event evAddEntry;
-Event evEntryNotFound;
-Event evVoteProcessedSuccessfully;
-Event evAddEntryProcessedSuccessfully;
+kind Event;                                        // We use events
+Event evDoVote;                                    // Introduces event evDoVote
+Event evAddEntry;                                  // We introduce event evAddEntry
+Event evEntryNotFound;                             // We introduce event evEntryNotFound
+Event evVoteProcessedSuccessfully;                 // We introduce event evVoteProcessedSuccessfully
+Event evAddEntryProcessedSuccessfully;             
 Event evAddEntryTableFull;
 Event evAddEntryEntryExists;
 
-val max_voting_table_size = 10;
-val msg_buffer_size_in_dwords = 64;
-val table_item_key_ofs = 0;
-val table_item_vote_ofs = 4;
+val max_voting_table_size = 10;                    // The maximal amount that can be stored in the table
+val msg_buffer_size_in_dwords = 64;                // The number of dwords, i.e. double words of 16 bit, the message buffer can contain
+val table_item_key_ofs = 0;                        // An entry in the table has two fields key and vote which are stored consecutively, table_item_key_ofs gives the relative offset of the key value
+val table_item_vote_ofs = 4;                       // table_item_vote_ofs gives the relative offset of the vote field
 
-OblectamentaDataLabel voting_table_size;
-OblectamentaDataLabel voting_table;
+OblectamentaDataLabel voting_table_size;           // A label into the data section, voting_table_size is a runtime variable which contains the number of the currently stored entries.
+OblectamentaDataLabel voting_table;                // A label into the data section, voting_table refernces the table in memory
 oblectamenta{global{data{  // here are the global data definitions
-    msg_buffer;
-    comment{"Reserve space for the message buffer.";};
-    for(i : 1 .. msg_buffer_size_in_dwords) {0;}
-    comment{"Reserve space for the table' size and initialize with 0 (0 entries in table)";};
+    msg_buffer; //Reserve space for the message buffer.
+    for(i : 1 .. msg_buffer_size_in_dwords) {0;} //Reserve space for the table' size and initialize with 0 (0 entries in table)
     voting_table_size; 1;
-    voting_table;comment{"Reserve space for the table itself.";};
-    TABLE_ENTRY{3;4;};  
+    voting_table;// Reserve space for the table itself.
+    TABLE_ENTRY{3;4;}; // Creates a single table entry with key=3 and votes=4
     for(i : 2 .. max_voting_table_size ){ 
         TABLE_ENTRY{0;0;};
     }
