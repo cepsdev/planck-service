@@ -1,0 +1,227 @@
+kind Event;
+Event evDoVote;
+Event evAddEntry;
+Event evEntryNotFound;
+Event evVoteProcessedSuccessfully;
+Event evAddEntryProcessedSuccessfully;
+Event evAddEntryTableFull;
+Event evAddEntryEntryExists;
+
+val max_voting_table_size = 10;
+val msg_buffer_size_in_dwords = 64;
+val table_item_key_ofs = 0;
+val table_item_vote_ofs = 4;
+
+OblectamentaDataLabel voting_table_size;
+OblectamentaDataLabel voting_table;
+oblectamenta{global{data{  // here are the global data definitions
+    msg_buffer;
+    comment{"Reserve space for the message buffer.";};
+    for(i : 1 .. msg_buffer_size_in_dwords) {0;}
+    comment{"Reserve space for the table' size and initialize with 0 (0 entries in table)";};
+    voting_table_size; 1;
+    voting_table;comment{"Reserve space for the table itself.";};
+    TABLE_ENTRY{3;4;};  
+    for(i : 2 .. max_voting_table_size ){ 
+        TABLE_ENTRY{i;0;};
+    }
+ };};};
+
+sm{
+ HandleVote;
+ states{Initial; ReadyForRequest; ProcessRequest;Error;};
+ Actions{
+    doProcessRequest{
+     oblectamenta{text{asm{
+        OblectamentaCodeLabel loop_search_entry, loop_search_entry_failed, loop_search_entry_success;      
+        val key = R0;
+        val votes = R1;
+        val table_size = R2;
+        val current_idx = R3;
+        val addr_current_element = R4;  
+        msg_match{
+         {
+            Key{
+                i32 # "A int 32 value";
+                sti32(key) # "store int 32 value in key";
+            };
+            Vote{
+                i32 # "A int 32 value";
+                sti32(votes) # "store int 32 value in key";
+            };
+         }
+        };
+        ldi32(0); // Put 0 as 32 bit signed integer on the top of the computation stack
+        sti32(current_idx); //current_idx = 0
+        
+        lea(voting_table_size); // Top(computestack) = address of voting_table_size 
+        ldsi32;                 // Top(computestack) = value at voting_table_size
+        sti32(table_size);      // table_size = number of elements in table
+
+        // Find entry.
+        
+    loop_search_entry;
+        ldi32(current_idx);
+        ldi32(table_size);
+        blteq(loop_search_entry_failed); //If table_idx >= table_size jump to loop_search_entry_failed; 
+        lea(voting_table);
+        ldi32(current_idx);
+        ldi32(table_entry_size);
+        muli32;
+        ui32toui64;
+        addi64;
+        sti64(addr_current_element);
+        ldi64(addr_current_element);
+        ldi64(table_item_key_ofs);
+        addi64;
+        ldsi32;
+        ldi32(key);
+        beq(loop_search_entry_success);
+        ldi32(current_idx);
+        ldi32(1);
+        addi32;
+        sti32(current_idx);
+        buc(loop_search_entry);
+        buc(loop_search_entry_success);
+        loop_search_entry_failed;
+        evEntryNotFound;
+        halt;
+    loop_search_entry_success;
+        ldi64(addr_current_element);
+        ldi64(table_item_vote_ofs);
+        addi64;
+        ldsi32;
+        ldi32(votes);
+        addi32;
+        ldi64(addr_current_element);
+        ldi64(table_item_vote_ofs);
+        addi64;
+        stsi32;
+        evVoteProcessedSuccessfully;
+        halt;
+     };};};
+    };
+ };
+ t{Initial;ReadyForRequest;};
+ t{ReadyForRequest;ProcessRequest;evDoVote;};
+ t{ProcessRequest;ReadyForRequest;doProcessRequest;};
+};
+
+sm{
+    HandleEntries;
+    Actions{
+        doAddEntry{
+            oblectamenta{text{asm{
+                OblectamentaCodeLabel 
+                  add_entry_loop_search_entry, add_entry_loop_search_entry_failed, add_entry_loop_search_entry_success, add_entry_tbl_full;
+                //evAddEntryProcessedSuccessfully;
+                val key = R0;
+                val table_size = R2;
+                val current_idx = R3;
+                val addr_current_element = R4;  
+                msg_match{
+                {
+                 Key{
+                  i32 # "A int 32 value";
+                  sti32(key) # "store int 32 value in key";
+                 };
+                 }
+                };
+                dbg_print_cs_and_regs(0);
+                ldi32(0); // Put 0 as 32 bit signed integer on the top of the computation stack
+                sti32(current_idx); //current_idx = 0
+        
+                lea(voting_table_size); // Put the address of voting_table_size onto the computestack 
+                ldsi32;                 // Pop the address on top of the compute stack and push the value references onto the compute stack
+                sti32(table_size);      // Put the constant table_size onto the compute stack
+                // Search a free field.
+                // Check whether the table is already full 
+                ldi32(table_size);     // Put the i32 value stored in the register denoted by table_size onto the compute stack
+                ldi32(max_voting_table_size); // Put the value of the i32 constant max_voting_table_size onto the compute stack
+                blteq(add_entry_tbl_full); // Jump to add_entry_tbl_full if max_voting_table_size <= table_size 
+
+        
+               add_entry_loop_search_entry;
+
+                ldi32(current_idx);                         // Put the i32 value current_idx which denotes a register onto the compute stack
+                ldi32(table_size);                          // Put the i32 value table_size which denotes a register onto the compute stack
+                blteq(add_entry_loop_search_entry_failed);  //If table_idx >= table_size jump to loop_search_entry_failed; 
+                lea(voting_table);   // put the address of voting_table onto the compute stack
+                ldi32(current_idx);   // put the value of the register denoted by current_idx onto the compute stack
+                ldi32(table_entry_size); // put the i32 constant value of table_entry_size onto the compute stack
+                muli32;  // Multiply the top i32 elements on the compute stack and replace them with the result, which is current_idx*table_entry_size
+                ui32toui64; // convert the top i32 value into a unsigned integer of 64 width capable of holding an address
+                addi64; // add the top i64 values on the compute stack and replace them with the result
+                sti64(addr_current_element); //store the top value of the computation stack in the register denoted by addr_current_element
+                ldi64(addr_current_element); //put the i64 value which is in the register denoted by addr_current_element onto the computation stack
+                ldi64(table_item_key_ofs); //put the constant value table_item_key_ofs as i64 value onto the compute stack
+                addi64; // add the top i64 elements of the compute stack and replace them with the result
+                ldsi32; // The address at the top of the compute stack points to the current element's key, derefernce the address and replace it with the i32 value.
+                ldi32(key); // Put the i32 value stored in the register denoted by key onto the compute stack
+                beq(add_entry_loop_search_entry_success); // if the top two i32 values on the compute stack are equal jump to add_entry_loop_search_entry_success
+                ldi32(current_idx); //put the vaue in register denoted by current_idx onto the compute stack
+                ldi32(1); // Put the i32 representation of the value 1 onto the compute stack
+                addi32; // Add the top two values on the compute stack and replace them with the result
+                sti32(current_idx); // Put the top i32 value on the compute stack into the register denoted by current_idx
+                buc(add_entry_loop_search_entry); // jump to add_entry_loop_search_entry, buc means branch unconditionally 
+                buc(add_entry_loop_search_entry_success);
+               add_entry_loop_search_entry_failed;
+                evAddEntryProcessedSuccessfully;
+                halt;
+               add_entry_tbl_full;
+                evAddEntryTableFull;
+                halt;
+               add_entry_loop_search_entry_success;
+                evAddEntryEntryExists;
+                halt;
+            };};};
+        };
+    };
+    states{Initial;ReadyForRequest;ProcessRequest;};
+    t{Initial;ReadyForRequest;};
+    t{ReadyForRequest;ProcessRequest;evAddEntry;doAddEntry;};
+    t{ProcessRequest;ReadyForRequest;};   
+};
+
+sm{
+ ExampleClients;
+ states{Initial;};
+ sm{
+  ExampleClientDoesVote;
+  states{Initial;SendRequest;RequestSent;ErrorReceivedEntryDoesntExist;VoteProcessedSuccessfully;};
+  Actions{
+   doSendRequest{
+   oblectamenta{text{asm{ 
+    send_msg{evDoVote;{Key{ldi32(3);i32;};Vote{ldi32(2);i32;};}};
+   };};};
+   };
+  };
+  t{Initial;SendRequest;};
+  t{SendRequest;RequestSent;doSendRequest;};
+  t{RequestSent;ErrorReceivedEntryDoesntExist;evEntryNotFound;};
+  t{RequestSent;VoteProcessedSuccessfully;evVoteProcessedSuccessfully;};
+ };
+ sm{
+  ExampleClientDoesAddEntry;
+  states{Initial;SendRequest;RequestSent;ErrorReceivedTableFull;ErrorReceivedEntryDoesExist;AddEntryProcessedSuccessfully;};
+  Actions{
+  doSendRequest{
+   oblectamenta{text{asm{ 
+    send_msg{evAddEntry;{Key{ldi32(42);i32;};}};
+   };};};
+  };
+  };
+  t{Initial;SendRequest;};
+  t{SendRequest;RequestSent;doSendRequest;};
+  t{RequestSent;ErrorReceivedTableFull;evAddEntryTableFull;};
+  t{RequestSent;ErrorReceivedEntryDoesExist;evAddEntryEntryExists;};
+  t{RequestSent;AddEntryProcessedSuccessfully;evAddEntryProcessedSuccessfully;};
+ };
+ 
+ t{Initial;ExampleClientDoesVote;};
+ t{ExampleClientDoesVote.VoteProcessedSuccessfully;ExampleClientDoesAddEntry;};
+};
+
+Simulation{
+    Start{HandleVote;HandleEntries;ExampleClients;};
+};

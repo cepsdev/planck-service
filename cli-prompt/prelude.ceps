@@ -63,6 +63,6 @@ macro TABLE_ENTRY{
  hd(tail(arglist)) # Votes;
 };
 
-
-
-
+val table_entry_size = 0;
+//Funny way to compute size of table entries
+for (e : as_nodeset(TABLE_ENTRY{0;0;})) {let table_entry_size = table_entry_size + 4;}

@@ -1,7 +1,16 @@
+/*
+ 
+How to run this example on the command line:
+ - Put the content of this section, i.e. the content between '{' and  '}' into a temporary file FILE.ceps 
+ - Run 'ceps FILE.ceps' in the shell. 
+ - The output on standard output is a sequence of the states visited, called a trace. The trace can be used to check correctness.";
+*/
+
 example{
     "This section explains state machines";
     "A simple state machine called S1 with two transitions triggered by an event Ev";
-    Event Ev;
+    kind Event; Event Ev;
+    "All state machines start in the state 'Initial'";
     sm{
         S1;
         states{Initial;A;B;};
@@ -10,10 +19,29 @@ example{
     };
     "The behaviour of this state machine can be tested by running a sequence of events in a Simulation directive:";
     Simulation{
+      Start{S1;};
       Ev;
       Ev; 
       "State machine should be in state B.";
       };
-    "To run this example put the content of this section into a file FILE.ceps and run ceps FILE.ceps in the shell. The output on standard output
-    is a sequence of the states visited, called a trace. The trace can be used to check correctness.";
+};
+
+example{
+  "This section explains state machines with actions.";
+  "A transition t{ ... } can contain up to three actions.";
+  "A transition which changes the state from A to B under event E and executes an action A:";
+  Event E;
+  t{A;B;E;A;};
+  "A complete example of a state machine with an action A is given below";
+  sm{
+    SA;
+    states{Initial; A; B;};
+    Actions{
+      A{
+       oblectamenta{text{asm{
+        // Here comes the code.
+       };};};        
+      };
+    };
+  };   
 };
